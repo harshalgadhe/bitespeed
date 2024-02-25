@@ -4,10 +4,19 @@ import ContactModel from "../database/contact.js";
 //TODO: Handle delete contact scenario
 
 export const getContactIdentity = async(req, res) => {
-    const {email, phoneNumber} = req.body;
+    console.log(req.body)
+    let {email, phoneNumber} = req.body;
+
+    email = String(email)
+    phoneNumber = String(phoneNumber)
+
     let contact_data = {}
 
     const primaryContact = await getPrimaryContact(email, phoneNumber);
+
+    if(primaryContact === null){
+        return createContact(req, res);
+    }
 
     contact_data = await getAllContacts(primaryContact);
     
@@ -19,8 +28,14 @@ export const getContactIdentity = async(req, res) => {
 
 export const createContact = async (req, res) => {
     let {email, phoneNumber} = req.body;
+    
     email = String(email)
     phoneNumber = String(phoneNumber)
+
+    if(email === "" && phoneNumber === ""){
+        res.send("Both email and phone number can't be empty");
+        return;
+    }
 
     const contact = await getPrimaryContact(email, phoneNumber);
     
@@ -80,16 +95,15 @@ const getPrimaryContact = async(email, phoneNumber) => {
 const getAllContacts = async(primaryContact) => {
 
     let contactsData = {};
-    console.log(primaryContact.id)
     if(primaryContact != null) {
         contactsData["primaryContactId"] = primaryContact.id;
 
         const contacts = await ContactModel.findAll({
             where: { linkedId: primaryContact.id}
         });
-    
-        contactsData["emails"] = [primaryContact.email]
-        contactsData["phoneNumbers"] = [Number(primaryContact.phoneNumber)]
+        
+        contactsData["emails"] = primaryContact.email === "" ? [] : [primaryContact.email]
+        contactsData["phoneNumbers"] = primaryContact.phoneNumber === "" ? [] : [Number(primaryContact.phoneNumber)]
         contactsData["secondaryContactIds"] = [];
 
         contacts.forEach( contact => {
